@@ -1,75 +1,66 @@
 #include <Arduino.h>
 #include <OneButton.h>
 
-// Khai báo nút nhấn và LED từ platformio.ini
-OneButton button(BTN_PIN, (BTN_ACT == LOW), true);
+#define LED1_PIN 2
+#define LED2_PIN 19
+#define BUTTON_PIN 4
 
-enum LedState {
-  LED_OFF,
-  LED_ON,
-  LED_BLINKING
-};
+OneButton btn(BUTTON_PIN, true, true);
 
-LedState currentLedState = LED_OFF;
+enum ActiveLED { SELECT_LED1, SELECT_LED2 };
+ActiveLED currentLED = SELECT_LED1;
+
+bool led1State = false;
+bool led2State = false;
+
 unsigned long lastBlinkTime = 0;
-const unsigned long BLINK_INTERVAL = 200; // Tần số nháy LED (ms)
-bool rawLedState = false;
+bool blinkToggle = false;
 
-// Hàm điều khiển xuất mức điện áp ra LED (tương thích cả Active LOW lẫn Active HIGH)
-void setLedHardwareState(bool turnOn) {
-  if (LED_ACT == LOW) {
-    digitalWrite(LED_PIN, turnOn ? LOW : HIGH);
-  } else {
-    digitalWrite(LED_PIN, turnOn ? HIGH : LOW);
-  }
-}
-
-// 1. Single Click -> Bật / Tắt (ON / OFF)
-void handleSingleClick() {
-  if (currentLedState == LED_OFF) {
-    currentLedState = LED_ON;
-    setLedHardwareState(true);
-    Serial.println("Single Click: LED ON");
-  } else {
-    currentLedState = LED_OFF;
-    setLedHardwareState(false);
-    Serial.println("Single Click: LED OFF");
-  }
-}
-
-// 2. Double Click -> Nháy LED (BLINKING)
 void handleDoubleClick() {
-  if (currentLedState != LED_BLINKING) {
-    currentLedState = LED_BLINKING;
-    Serial.println("Double Click: LED BLINKING");
+  currentLED = (currentLED == SELECT_LED1) ? SELECT_LED2 : SELECT_LED1;
+}
+
+void handleClick() {
+  if (currentLED == SELECT_LED1) {
+    led1State = !led1State;
+    digitalWrite(LED1_PIN, led1State ? HIGH : LOW);
   } else {
-    currentLedState = LED_OFF;
-    setLedHardwareState(false);
-    Serial.println("Double Click: LED OFF");
+    led2State = !led2State;
+    digitalWrite(LED2_PIN, led2State ? HIGH : LOW);
   }
+}
+
+void handleDuringLongPress() {
+  if (millis() - lastBlinkTime >= 200) {
+    lastBlinkTime = millis();
+    blinkToggle = !blinkToggle;
+    
+    int activePin = (currentLED == SELECT_LED1) ? LED1_PIN : LED2_PIN;
+    digitalWrite(activePin, blinkToggle ? HIGH : LOW);
+  }
+}
+
+void handleLongPressStop() {
+  digitalWrite(LED1_PIN, led1State ? HIGH : LOW);
+  digitalWrite(LED2_PIN, led2State ? HIGH : LOW);
+  blinkToggle = false;
 }
 
 void setup() {
   Serial.begin(115200);
-  pinMode(LED_PIN, OUTPUT);
-  setLedHardwareState(false); // Ban đầu tắt LED
 
-  // Gán các sự kiện cho OneButton
-  button.attachClick(handleSingleClick);
-  button.attachDoubleClick(handleDoubleClick);
+  pinMode(LED1_PIN, OUTPUT);
+  pinMode(LED2_PIN, OUTPUT);
+
+  digitalWrite(LED1_PIN, LOW);
+  digitalWrite(LED2_PIN, LOW);
+
+  btn.attachDoubleClick(handleDoubleClick);
+  btn.attachClick(handleClick);
+  btn.attachDuringLongPress(handleDuringLongPress);
+  btn.attachLongPressStop(handleLongPressStop);
 }
 
 void loop() {
-  // Cập nhật trạng thái nút nhấn
-  button.tick();
-
-  // Xử lý nháy LED (non-blocking)
-  if (currentLedState == LED_BLINKING) {
-    unsigned long currentMillis = millis();
-    if (currentMillis - lastBlinkTime >= BLINK_INTERVAL) {
-      lastBlinkTime = currentMillis;
-      rawLedState = !rawLedState;
-      setLedHardwareState(rawLedState);
-    }
-  }
+  btn.tick();
 }
