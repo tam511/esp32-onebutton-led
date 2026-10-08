@@ -1,25 +1,4 @@
-# Bài 4: Điều khiển 1 LED bằng OneButton
 
----
-
-## 1. Sơ đồ kết nối phần cứng (Hardware Setup)
-
-- **Vi điều khiển:** ESP32 Dev Module (DOIT ESP32 DEVKIT V1)
-- **LED 1 (Built-in LED):** Chân **GPIO2** (D2)
-- **Nút nhấn (External Button):** Chân **GPIO4** (D4) — Cấu hình Active LOW (kết nối với GND, sử dụng trở kéo nội bộ `INPUT_PULLUP`).
-
----
-
-## 2. Nguyên lý và Logic điều khiển (Software Logic)
-
-Dự án xử lý 3 thao tác nút bấm cơ bản từ thư viện `OneButton`:
-
-1. **Nhấn kép (Double Click):**
-   - Nháy LED.
-2. **Nhấn đơn (Single Click):**
-   - Bật hoặc Tắt (Toggle ON/OFF) LED.
-
----
 
 # Bài 5: Điều hiển 2 LED
 
